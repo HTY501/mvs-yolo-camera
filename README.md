@@ -80,7 +80,8 @@ std::vector<cv::Point3f> object_points = {
     { HALF_W,  HALF_H, 0.0f}, // 右下
     {-HALF_W,  HALF_H, 0.0f}  // 左下
 };
-// ... 
+//
+```
 bool pnp_success = cv::solvePnP(object_points, image_points, camera_matrix, dist_coeffs, rvec, tvec, false, cv::SOLVEPNP_IPPE);
 4. 运行说明
 运行前需准备：
@@ -89,15 +90,3 @@ bool pnp_success = cv::solvePnP(object_points, image_points, camera_matrix, dist
 
 将相机标定生成的 camera_params.yml 放入 build 目录。
 编译后运行 ./mvs_yolo 即可观察三维坐标、距离与滤波预测结果。
-
-4. 滑到网页最下面，点击绿色的 **`Commit changes`** 按钮。
-
----
-
-### 🎬 最后，别忘了交作业的视频！
-网页上的代码和文档已经完美了。现在赶紧拿手机录一段演示视频：
-*   屏幕上必须同时出现**绿框、红点**。
-*   屏幕上必须能看到底下的三行字：**Raw Dist / Kalman Dist / Pred Dist**。
-*   展示一下：静止不动时数据很稳，快速晃动时三个数据跟着变，且预测值提前。
-
-把**仓库链接**和**视频**一交，第五次作业完美收官！去吧！
