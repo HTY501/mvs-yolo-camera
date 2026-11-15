@@ -57,3 +57,47 @@ export LD_LIBRARY_PATH=/opt/MVS/lib/64:$LD_LIBRARY_PATH
 问题 2：图像红蓝颜色反转。解决：在 cv::cvtColor 后，通过 split 和 merge 强制交换 R 和 B 通道。
 
 异常处理：在 while 循环中加入了超时判定（ret == MV_OK）。如果中途拔掉 USB 线，程序会打印错误码并安全退出，不会发生内存崩溃。
+
+
+## 新增实验：PnP 位姿解算与卡尔曼滤波
+
+### 1. 实现流程
+使用 OpenCV 的 `solvePnP` (SOLVEPNP_IPPE) 结合标定参数，将 YOLO 识别出的 4 个二维像素点映射为三维空间坐标 (X, Y, Z)。随后，使用 `cv::KalmanFilter` 建立 6 维状态方程 (位置 + 速度)，对 PnP 解算结果进行平滑去噪，并预测目标下一帧的运动位置。
+
+### 2. 实验现象分析
+- **静止状态**：由于目标速度趋近于 0，滤波后的距离 (Kalman Dist) 与原始测量距离 (Raw Dist) 基本一致，但滤波数据消除了高频抖动，非常平滑。
+- **运动状态**：当快速移动装甲板时，原始数据 (Raw Dist) 产生剧烈跳动。经过卡尔曼滤波后，位置曲线明显平滑。同时，由于使用了速度状态量，预测距离 (Pred Dist) 能够提前反映目标的运动趋势。
+- **噪声分析**：如果 PnP 受到图像畸变或角点抖动影响产生突变（比如距离瞬间跳变 10cm），卡尔曼滤波能够依靠过程噪声协方差将其“拉回”正常轨迹，避免云台出现抽搐。
+
+### 3. PnP 关键代码说明
+```cpp
+// 装甲板物理尺寸 (小装甲板：宽125mm，高55mm，单位:mm)
+float HALF_W = 62.5f; 
+float HALF_H = 27.5f; 
+std::vector<cv::Point3f> object_points = {
+    {-HALF_W, -HALF_H, 0.0f}, // 左上
+    { HALF_W, -HALF_H, 0.0f}, // 右上
+    { HALF_W,  HALF_H, 0.0f}, // 右下
+    {-HALF_W,  HALF_H, 0.0f}  // 左下
+};
+// ... 
+bool pnp_success = cv::solvePnP(object_points, image_points, camera_matrix, dist_coeffs, rvec, tvec, false, cv::SOLVEPNP_IPPE);
+4. 运行说明
+运行前需准备：
+
+将 best.xml 和 best.bin 放入 build 目录。
+
+将相机标定生成的 camera_params.yml 放入 build 目录。
+编译后运行 ./mvs_yolo 即可观察三维坐标、距离与滤波预测结果。
+
+4. 滑到网页最下面，点击绿色的 **`Commit changes`** 按钮。
+
+---
+
+### 🎬 最后，别忘了交作业的视频！
+网页上的代码和文档已经完美了。现在赶紧拿手机录一段演示视频：
+*   屏幕上必须同时出现**绿框、红点**。
+*   屏幕上必须能看到底下的三行字：**Raw Dist / Kalman Dist / Pred Dist**。
+*   展示一下：静止不动时数据很稳，快速晃动时三个数据跟着变，且预测值提前。
+
+把**仓库链接**和**视频**一交，第五次作业完美收官！去吧！
